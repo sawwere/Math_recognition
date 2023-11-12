@@ -155,6 +155,11 @@ start.bat
 
 models/
 outputs/
-TRAIN/
+TRAIN/by_class/
 HASYv2/
 hasy_sorted/
+
+*.jpg
+*.jpeg
+*.png
+TRAIN/A_Z Handwritten Data.csv
