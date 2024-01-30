@@ -41,6 +41,10 @@
             this.splitContainer2 = new System.Windows.Forms.SplitContainer();
             this.pictureBox2 = new System.Windows.Forms.PictureBox();
             this.richTextBox1 = new System.Windows.Forms.RichTextBox();
+            this.toolStripDropDownButton1 = new System.Windows.Forms.ToolStripDropDownButton();
+            this.текстToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.wordToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.latexToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStrip1.SuspendLayout();
             this.panel2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
@@ -62,7 +66,8 @@
             // toolStrip1
             // 
             this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.toolStripButton1});
+            this.toolStripButton1,
+            this.toolStripDropDownButton1});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
             this.toolStrip1.Size = new System.Drawing.Size(1190, 25);
@@ -83,16 +88,17 @@
             // 
             this.button1.Location = new System.Drawing.Point(4, 4);
             this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(75, 23);
+            this.button1.Size = new System.Drawing.Size(102, 23);
             this.button1.TabIndex = 0;
-            this.button1.Text = "button1";
+            this.button1.Text = "Сканировать";
             this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click);
             // 
             // button2
             // 
             this.button2.Location = new System.Drawing.Point(4, 34);
             this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(75, 23);
+            this.button2.Size = new System.Drawing.Size(102, 23);
             this.button2.TabIndex = 1;
             this.button2.Text = "button2";
             this.button2.UseVisualStyleBackColor = true;
@@ -126,7 +132,7 @@
             // 
             this.splitContainer1.Panel2.Controls.Add(this.splitContainer2);
             this.splitContainer1.Size = new System.Drawing.Size(997, 496);
-            this.splitContainer1.SplitterDistance = 510;
+            this.splitContainer1.SplitterDistance = 332;
             this.splitContainer1.TabIndex = 4;
             // 
             // pictureBox1
@@ -134,7 +140,7 @@
             this.pictureBox1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pictureBox1.Location = new System.Drawing.Point(0, 0);
             this.pictureBox1.Name = "pictureBox1";
-            this.pictureBox1.Size = new System.Drawing.Size(506, 492);
+            this.pictureBox1.Size = new System.Drawing.Size(328, 492);
             this.pictureBox1.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.pictureBox1.TabIndex = 0;
             this.pictureBox1.TabStop = false;
@@ -152,8 +158,8 @@
             // splitContainer2.Panel2
             // 
             this.splitContainer2.Panel2.Controls.Add(this.richTextBox1);
-            this.splitContainer2.Size = new System.Drawing.Size(479, 492);
-            this.splitContainer2.SplitterDistance = 240;
+            this.splitContainer2.Size = new System.Drawing.Size(657, 492);
+            this.splitContainer2.SplitterDistance = 488;
             this.splitContainer2.TabIndex = 0;
             // 
             // pictureBox2
@@ -161,7 +167,7 @@
             this.pictureBox2.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pictureBox2.Location = new System.Drawing.Point(0, 0);
             this.pictureBox2.Name = "pictureBox2";
-            this.pictureBox2.Size = new System.Drawing.Size(240, 492);
+            this.pictureBox2.Size = new System.Drawing.Size(488, 492);
             this.pictureBox2.SizeMode = System.Windows.Forms.PictureBoxSizeMode.Zoom;
             this.pictureBox2.TabIndex = 0;
             this.pictureBox2.TabStop = false;
@@ -171,9 +177,40 @@
             this.richTextBox1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.richTextBox1.Location = new System.Drawing.Point(0, 0);
             this.richTextBox1.Name = "richTextBox1";
-            this.richTextBox1.Size = new System.Drawing.Size(235, 492);
+            this.richTextBox1.Size = new System.Drawing.Size(165, 492);
             this.richTextBox1.TabIndex = 0;
             this.richTextBox1.Text = "";
+            // 
+            // toolStripDropDownButton1
+            // 
+            this.toolStripDropDownButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.toolStripDropDownButton1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.текстToolStripMenuItem,
+            this.wordToolStripMenuItem,
+            this.latexToolStripMenuItem});
+            this.toolStripDropDownButton1.Image = ((System.Drawing.Image)(resources.GetObject("toolStripDropDownButton1.Image")));
+            this.toolStripDropDownButton1.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toolStripDropDownButton1.Name = "toolStripDropDownButton1";
+            this.toolStripDropDownButton1.Size = new System.Drawing.Size(65, 22);
+            this.toolStripDropDownButton1.Text = "Экспорт";
+            // 
+            // текстToolStripMenuItem
+            // 
+            this.текстToolStripMenuItem.Name = "текстToolStripMenuItem";
+            this.текстToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.текстToolStripMenuItem.Text = "Текст";
+            // 
+            // wordToolStripMenuItem
+            // 
+            this.wordToolStripMenuItem.Name = "wordToolStripMenuItem";
+            this.wordToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.wordToolStripMenuItem.Text = "Word";
+            // 
+            // latexToolStripMenuItem
+            // 
+            this.latexToolStripMenuItem.Name = "latexToolStripMenuItem";
+            this.latexToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.latexToolStripMenuItem.Text = "Latex";
             // 
             // Form1
             // 
@@ -217,6 +254,10 @@
         private System.Windows.Forms.SplitContainer splitContainer2;
         private System.Windows.Forms.PictureBox pictureBox2;
         private System.Windows.Forms.RichTextBox richTextBox1;
+        private System.Windows.Forms.ToolStripDropDownButton toolStripDropDownButton1;
+        private System.Windows.Forms.ToolStripMenuItem текстToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem wordToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem latexToolStripMenuItem;
     }
 }
 

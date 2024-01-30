@@ -1,17 +1,13 @@
 import torch
 import numpy as np
-import argparse
-import imutils
-import time
+import sys
+import base64
 import cv2
 
 from PIL import Image, ImageOps, ImageFont, ImageDraw
 from torchvision import transforms
 
 from imutils.object_detection import non_max_suppression
-
-import matplotlib.pyplot as plt
-import torch.nn as nn
 
 import models.MathNet as mnt
 import models.MathNet56 as mnt56
@@ -55,9 +51,10 @@ class SlidingWindow():
         thresh = 110
         ret, thresh_img = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
         thresh_img = cv2.adaptiveThreshold(blurred, 255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY,5,8)
-        cv2.imshow('img_contours', thresh_img )
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        if self.kwargs['DEBUG'] == True:
+            cv2.imshow('thresh_img', thresh_img )
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
         return thresh_img
     
     def get_rois(self, image, step, window_stride):
@@ -77,7 +74,8 @@ class SlidingWindow():
                 cnt += 1
         avg_w /= cnt
         avg_h /= cnt
-        print(avg_h, avg_w)
+        if self.kwargs['DEBUG'] == True:
+            print(avg_h, avg_w)
 
         step = avg_w
 
@@ -85,12 +83,7 @@ class SlidingWindow():
             for x in range(window_stride[0], image.shape[1] - window_stride[0], int(avg_w / 3)):
                 crop_img = image[y:y + int(avg_h), x:x + int(avg_w)]
 
-                #find contours
-                contours, hierarchy = cv2.findContours(image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-                img_contours = np.uint8(np.zeros((crop_img.shape[0],crop_img.shape[1])))
-                cv2.drawContours(img_contours, contours, -1, (255,255,255), 1)
-                
-                if (len(contours) > 1):
+                if (cv2.countNonZero(crop_img) > 1):
                     #print(x,y, len(contours))
                     img = Image.fromarray(crop_img.astype('uint8'))
                     #display(img)
@@ -119,6 +112,7 @@ class SlidingWindow():
 
             preds = self.model(x_image) 
             prob = preds.max().item()
+            
             #print(prob)
             if prob >= self.kwargs['MIN_CONF']:       
                 letter.value = mnt.map_pred(preds.argmax().item())
@@ -129,19 +123,22 @@ class SlidingWindow():
         
     def visualize_preds(self, img, letters, indices):
         output = Image.fromarray(img.astype('uint8'))
+        res_letters = []
         for ind in indices:
             letter = letters[ind]
+            res_letters.append(letter)
             #rect = cv2.rectangle(output, (letter.x, letter.y), (letter.right, letter.bottom), (0, 255,0), 2)
 
-            font = ImageFont.truetype("ARIALUNI.TTF", 24, encoding="unic")
+            font = ImageFont.truetype("T:\my_programs\Math_recognition\ARIALUNI.TTF", 24, encoding="unic",)
             draw = ImageDraw.Draw(output)
-            draw.rectangle((letter.x, letter.y, letter.x+letter.width, letter.y+letter.height))
-            draw.text((letter.x, letter.y), str(letter.value), font=font)
+            draw.rectangle((letter.x, letter.y, letter.x+letter.width, letter.y+letter.height), outline=(255,0,0,255))
+            draw.text((letter.x, letter.y), str(letter.value), font=font, fill=(255,0,0,255))
             #cv2.putText(output, str(letter.value), (letter.x, letter.y), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1)
        
         #aaa = Image.fromarray(output.astype('uint8'))
-        display(output)
-        return letters   
+        if self.kwargs['DEBUG'] == True:
+            output.show()
+        return (output, res_letters)
 
     def get_exact_locations(self, rois):
         res = []
@@ -185,16 +182,41 @@ class SlidingWindow():
 
     def __call__(self, img):
         regions_of_interest = self.get_rois(self.preprocess(img), self.kwargs['WIN_STEP'], self.kwargs['ROI_SIZE'])
-        print(len(regions_of_interest))
+        if self.kwargs['DEBUG'] == True:
+            print('regions_of_interest = ', len(regions_of_interest))
         letters = self.get_exact_locations(regions_of_interest)
-        print(len(letters))
+        if self.kwargs['DEBUG'] == True:
+            print(len(letters))
         indices = self.predict(letters)
-        print(len(indices))
+        if self.kwargs['DEBUG'] == True:
+            print('found letters = ', len(indices))
         #nms_labels = self.apply_nms(labels)
         #if self.kwargs['VISUALIZE']:
-        self.visualize_preds(img, letters, indices)
-        return 1
+        res = self.visualize_preds(img, letters, indices)
+        return res
     
 if __name__ == '__main__':
-    image = cv2.imread('TEST//5.jpg')
+    debug = True
+    IMAGE_SIZE = int(sys.argv[1])
+    path = sys.argv[2]
+    if (sys.argc > 3):
+        if (sys.argv[3] == "REL"):
+            debug = False
+
+    kwargs = dict(
+        PYR_SCALE=1.25,
+        WIN_STEP=16,
+        ROI_SIZE=(10, 10),
+        INPUT_SIZE=(32, 32),
+        VISUALIZE=True,
+        MIN_CONF=3.05,
+        IMAGE_SIZE=IMAGE_SIZE,
+        DEBUG=debug
+    )
+    image = cv2.imread(path)
+    factory = MathNetFactory()
+    factory.SetModel(IMAGE_SIZE)
+    sw = SlidingWindow(factory.LoadModel(), kwargs)
+    res = sw(image)
+    print(base64.decode(res[0]))
     
