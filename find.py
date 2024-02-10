@@ -25,15 +25,14 @@ if (len(sys.argv) > 3):
         debug = False
 
 kwargs = dict(
-    PYR_SCALE=1.25,
-    WIN_STEP=16,
-    ROI_SIZE=(10, 10),
-    INPUT_SIZE=(32, 32),
-    VISUALIZE=True,
-    MIN_CONF=3.05,
-    IMAGE_SIZE=IMAGE_SIZE,
-    DEBUG=debug
-)
+        PYR_SCALE=2.25,
+        WIN_STEP=16,
+        ROI_SIZE=(48, 48),
+        INPUT_SIZE=(IMAGE_SIZE, IMAGE_SIZE),
+        VISUALIZE=True,
+        MIN_CONF=3.05,
+        DEBUG=debug
+    )
 image = cv2.imread(path)
 factory = MathNetFactory()
 factory.SetModel(IMAGE_SIZE)
