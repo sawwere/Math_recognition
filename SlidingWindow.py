@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 import sys
+import time
 import base64
 import cv2
 import pytesseract
@@ -31,6 +32,7 @@ class Letter:
         self.line = 0
 
         self.value = 'None'
+        self.score = 0
         
     def resize():
         pass
@@ -77,13 +79,16 @@ class SlidingWindow():
 
     def get_rois(self, W, pyramid):
         res = []
+        strideX = self.kwargs['ROI_SIZE'][0]
+        strideY = self.kwargs['ROI_SIZE'][1]
         for image in pyramid:
             scale = W / float(image.shape[1])
-            for (x, y, roiOrig) in self.sliding_window(image, self.kwargs['ROI_SIZE'], self.kwargs['WIN_STEP']):
-                if (cv2.countNonZero(roiOrig) > 1):
-                    #print(x,y, len(contours))
-                    img = Image.fromarray(roiOrig.astype('uint8'))
-                    #display(img)
+            #cv2.imshow("{} {};".format(scale, image.shape[0]), image)
+            #cv2.waitKey(0)
+            for (x, y, roiOrig) in self.sliding_window(image, (strideX, strideY), self.kwargs['WIN_STEP']):
+                img = Image.fromarray(roiOrig.astype('uint8'))
+                # skip blank images                
+                if (img.size[0]*img.size[1] - cv2.countNonZero(roiOrig) != 0):
                     x = int(x * scale)
                     y = int(y * scale)
                     w = int(self.kwargs['ROI_SIZE'][0] * scale)
@@ -91,8 +96,8 @@ class SlidingWindow():
                     
                     roi = cv2.resize(roiOrig, self.kwargs['INPUT_SIZE'])
                     res.append(Letter(x, y, w, h, roi))
-                
         return res
+
     
     def visualize_rois(self, img, letters):
         output = Image.fromarray(img.astype('uint8'))        
@@ -105,20 +110,15 @@ class SlidingWindow():
         output.show()
         return (output, res_letters)
         
-    def visualize_preds(self, img, letters, indices):
+    def visualize_preds(self, img, letters):
         output = Image.fromarray(img.astype('uint8'))
+        font = ImageFont.truetype("T:\my_programs\Math_recognition\ARIALUNI.TTF", 10, encoding="unic")
+        draw = ImageDraw.Draw(output)
         res_letters = []
-        for ind in indices:
-            letter = letters[ind]
+        for letter in letters:
             res_letters.append(letter)
-            #rect = cv2.rectangle(output, (letter.x, letter.y), (letter.right, letter.bottom), (0, 255,0), 2)
-            font = ImageFont.truetype("T:\my_programs\Math_recognition\ARIALUNI.TTF", 14, encoding="unic",)
-            draw = ImageDraw.Draw(output)
             draw.rectangle((letter.x, letter.y, letter.x+letter.width, letter.y+letter.height), outline=(255,0,0))
-            draw.text((letter.x, letter.y), str(letter.value), font=font, fill=(255,0,0,255))
-            #cv2.putText(output, str(letter.value), (letter.x, letter.y), cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1)
-       
-        #aaa = Image.fromarray(output.astype('uint8'))
+            draw.text((letter.x, letter.y), str(letter.value), font=font, fill=(200,40,0,255))
         if self.kwargs['DEBUG'] == True:
             output.show()
         return (output, res_letters)
@@ -132,18 +132,17 @@ class SlidingWindow():
             img_contours = np.uint8(np.zeros((img.shape[0],img.shape[1])))
             cv2.drawContours(img_contours, contours, -1, (255,255,255), 1)
             # Filter contours
-            
             contours = list(contours)
             contours.sort(key=custom_sort)
-            my_countour = contours[0]
+            my_countour = contours[1 if len(contours) > 1 else 0]
             (x, y, w, h) = cv2.boundingRect(my_countour)
-            #print(w, h)
             if cv2.contourArea(my_countour) < 10 or cv2.contourArea(my_countour) > 5000:
                 pass
             
             #print("R", x, y, w, h, cv2.contourArea(contour))
             crop_img = img[y:y+h, x:x+w]
-            
+            # cv2.imshow('crop', crop_img)
+            # cv2.waitKey(0)
             _let = Letter(x+letter.x, y+letter.y, w, h, crop_img)
             res.append(_let)
 
@@ -168,8 +167,8 @@ class SlidingWindow():
             letter.image = img
 
     def predict(self, letters):
-        res = []
-        ind = 0
+        regions_of_interest = []
+        labels = {}
         torch.cuda.empty_cache()
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
@@ -187,37 +186,83 @@ class SlidingWindow():
             x_image = x_image.unsqueeze(0).float()
             x_image = x_image.to(device)
 
-            preds = self.model(x_image) 
-            prob = preds.max().item()
+            predicted = self.model(x_image) 
+            prob = predicted.max().item()
             
             #print(prob)
-            if prob >= self.kwargs['MIN_CONF']:       
-                letter.value = mnt.map_pred(preds.argmax().item())
-                letter.value += ';' + pytesseract.image_to_string(img, lang="eng")
-                res.append(ind)
+            if prob >= self.kwargs['MIN_CONF']:   
+                value = mnt.map_pred(predicted.argmax().item())  
+                letter.value = value
+                letter.value += "; {:.4f}".format(prob)
+                letter.score = prob
+
+                ll = labels.get(value, [])
+                ll.append(letter)
+                labels[value] = ll
+                regions_of_interest.append(letter)
                 #display(img)
-            ind += 1
+        return (regions_of_interest, labels)
+    
+    def non_max_suppression(self, preds : dict, thresh : float):
+        res = []
+        for label in preds.keys():
+            letters = preds[label]
+            letters.sort(key=lambda ll: (ll.score), reverse=False)
+            while len(letters) > 0:
+                cur_letter = letters[-1]
+                x_r = cur_letter.x + cur_letter.width
+                y_r = cur_letter.y + cur_letter.height
+                res.append(cur_letter)
+                letters = letters[:-1]
+                if len(letters) == 0:
+                    break
+                for letter in letters:
+                    x1 = letter.x
+                    y1 = letter.y
+                    x2 = letter.x + letter.width
+                    y2 = letter.y + letter.height
+
+                    xx1 = max(cur_letter.x, x1)
+                    xx2 = min(x_r, x2)
+                    yy1 = max(cur_letter.y, y1)
+                    yy2 = min(y_r, y2)
+
+                    w = xx2 - xx1
+                    h = yy2 - yy1
+                    if w < 0 or h < 0:
+                        continue
+                    intersection = w*h
+                    union = cur_letter.width * cur_letter.height + letter.width * letter.height - intersection
+                    iou = intersection / union
+                    if iou > thresh:
+                        letters.remove(letter)
         return res
 
     def __call__(self, img):
         processed_image = self.preprocess(img)
         pyramid = self.image_pyramid(processed_image, scale=self.kwargs['PYR_SCALE'], minSize=self.kwargs['ROI_SIZE'])
         regions_of_interest = self.get_rois(img.shape[1], pyramid)
-        if self.kwargs['DEBUG'] == True:
-            self.visualize_rois(img, regions_of_interest)
+        #if self.kwargs['DEBUG'] == True:
+        #    self.visualize_rois(img, regions_of_interest)
 
         if self.kwargs['DEBUG'] == True:
             print('regions_of_interest = ', len(regions_of_interest))
 
-        letters = self.get_exact_locations(regions_of_interest)
-        #self.add_spaces_to_letter(letters)
+        #regions_of_interest = self.get_exact_locations(regions_of_interest)
+        #self.add_spaces_to_letter(regions_of_interest)
+
+        (regions_of_interest, preds) = self.predict(regions_of_interest)
+        if self.kwargs['DEBUG'] == True:
+            print('letters predicted = ', len(regions_of_interest))
+
+        self.visualize_preds(img, regions_of_interest)
+        regions_of_interest = self.non_max_suppression(preds, 1)
+        if self.kwargs['DEBUG'] == True:
+            print('apply non_max_suppression = ', len(regions_of_interest))
 
         if self.kwargs['DEBUG'] == True:
-            print(len(letters))
-        indices = self.predict(letters)
-        if self.kwargs['DEBUG'] == True:
-            print('found letters = ', len(indices))
-        res = self.visualize_preds(img, letters, indices)
+            print('found letters = ', len(regions_of_interest))
+        res = self.visualize_preds(img, regions_of_interest)
         return res
 
 
