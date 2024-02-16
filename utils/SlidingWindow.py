@@ -16,26 +16,18 @@ from imutils.object_detection import non_max_suppression
 import models.MathNet as mnt
 import models.MathNet56 as mnt56
 from models.MathNetFactory import MathNetFactory
+from utils.letter import Letter
 
 pytesseract.pytesseract.tesseract_cmd = "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
 
 
 
-class Letter:
-    def __init__(self, x, y, w, h, img):
-        self.x = x
-        self.y = y
-        self.width = w
-        self.height = h
-        self.image = img
-        
-        self.line = 0
-
-        self.value = 'None'
-        self.score = 0
-        
-    def resize():
-        pass
+def intersect_rect(x1, y1, x2, y2, xa, ya, xb, yb):
+    xx1 = max(x1, xa)
+    xx2 = min(x2, xb)
+    yy1 = max(y1, ya)
+    yy2 = min(y2, yb)
+    return (xx1, yy1, xx2, yy2)
 
 def custom_sort(countour):
         return -cv2.contourArea(countour)
@@ -48,18 +40,28 @@ class SlidingWindow():
         self.model.eval()
         self.kwargs = kwargs
     
-    def preprocess(self, image):
+    def preprocess(self, image, frame):
         res = image.copy()
         gray = cv2.cvtColor(res,cv2.COLOR_BGR2GRAY)
         blurred = cv2.blur(gray, (3, 3))
         thresh = 110
-        thresh_img = thresh = cv2.threshold(blurred,0,255,cv2.THRESH_OTSU)[1]
+        #thresh_img = cv2.threshold(blurred,0,255, cv2.THRESH_OTSU | cv2.THRESH_BINARY)[1]
         thresh_img = cv2.adaptiveThreshold(blurred, 255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY,5,8)
+
+        contours, hierarchy = cv2.findContours(thresh_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)   
+        mask = np.uint8(np.zeros((thresh_img.shape[0], thresh_img.shape[1])))
+        for (idx, contour) in enumerate(contours[1:]):
+            (x, y, w, h) = cv2.boundingRect(contour)
+            if (x - frame[0]) * (x -  image.shape[1] - frame[0]) > 0 or (y - frame[1]) * (y -  image.shape[0] - frame[1]) > 0 :
+                
+                cv2.drawContours(mask, [contour], 0, (255), -1)
+        result = cv2.bitwise_or(thresh_img, mask)
+        
         if self.kwargs['DEBUG'] == True:
-            cv2.imshow('thresh_img', thresh_img )
+            cv2.imshow('result', result)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
-        return thresh_img
+        return result
     
     def sliding_window(self, image, window_stride, step):
         for y in range(0, image.shape[0] - window_stride[1], step):
@@ -98,15 +100,14 @@ class SlidingWindow():
                     res.append(Letter(x, y, w, h, roi))
         return res
 
-    
-    def visualize_rois(self, img, letters):
+    def visualize_rois(self, img, rois):
         output = Image.fromarray(img.astype('uint8'))        
         res_letters = []
-        for idx in range(0, len(letters)):
-            letter = letters[idx]
-            res_letters.append(letter)
+        for idx in range(0, len(rois)):
+            roi = rois[idx]
+            res_letters.append(roi)
             draw = ImageDraw.Draw(output)
-            draw.rectangle((letter.x, letter.y, letter.x+letter.width, letter.y+letter.height), outline=(255,0,0))
+            draw.rectangle((roi.x, roi.y, roi.right, roi.bottom), outline=(255,0,0))
         output.show()
         return (output, res_letters)
         
@@ -149,23 +150,6 @@ class SlidingWindow():
         res.sort(key=lambda ll: (ll.y, ll.x), reverse=False)
         return res
     
-    def add_spaces_to_letter(self, letters):
-        for letter in letters:
-            img = letter.image
-            (w, h) = (letter.width, letter.height)
-            size_max = max(letter.width, letter.height)
-            letter_square = 255 * np.ones(shape=[size_max, size_max], dtype=np.uint8)
-            if w > h:
-                y_pos = size_max//2 - h//2
-                letter_square[y_pos:y_pos + h, 0:w] = img
-            elif w < h:
-                x_pos = size_max//2 - w//2
-                letter_square[0:h, x_pos:x_pos + w] = img
-            else:
-                letter_square = img
-            
-            letter.image = img
-
     def predict(self, letters):
         regions_of_interest = []
         labels = {}
@@ -193,7 +177,7 @@ class SlidingWindow():
             if prob >= self.kwargs['MIN_CONF']:   
                 value = mnt.map_pred(predicted.argmax().item())  
                 letter.value = value
-                letter.value += "; {:.4f}".format(prob)
+                letter.value += "; {:.2f}".format(prob)
                 letter.score = prob
 
                 ll = labels.get(value, [])
@@ -210,22 +194,13 @@ class SlidingWindow():
             letters.sort(key=lambda ll: (ll.score), reverse=False)
             while len(letters) > 0:
                 cur_letter = letters[-1]
-                x_r = cur_letter.x + cur_letter.width
-                y_r = cur_letter.y + cur_letter.height
                 res.append(cur_letter)
                 letters = letters[:-1]
                 if len(letters) == 0:
                     break
                 for letter in letters:
-                    x1 = letter.x
-                    y1 = letter.y
-                    x2 = letter.x + letter.width
-                    y2 = letter.y + letter.height
-
-                    xx1 = max(cur_letter.x, x1)
-                    xx2 = min(x_r, x2)
-                    yy1 = max(cur_letter.y, y1)
-                    yy2 = min(y_r, y2)
+                    (xx1, yy1, xx2, yy2) = intersect_rect(cur_letter.left, cur_letter.y, cur_letter.right, cur_letter.bottom,
+                                         letter.left, letter.top, letter.right, letter.bottom)
 
                     w = xx2 - xx1
                     h = yy2 - yy1
@@ -239,7 +214,7 @@ class SlidingWindow():
         return res
 
     def __call__(self, img):
-        processed_image = self.preprocess(img)
+        processed_image = self.preprocess(img, (45, 45))
         pyramid = self.image_pyramid(processed_image, scale=self.kwargs['PYR_SCALE'], minSize=self.kwargs['ROI_SIZE'])
         regions_of_interest = self.get_rois(img.shape[1], pyramid)
         #if self.kwargs['DEBUG'] == True:
@@ -254,9 +229,9 @@ class SlidingWindow():
         (regions_of_interest, preds) = self.predict(regions_of_interest)
         if self.kwargs['DEBUG'] == True:
             print('letters predicted = ', len(regions_of_interest))
-
-        self.visualize_preds(img, regions_of_interest)
-        regions_of_interest = self.non_max_suppression(preds, 1)
+            if self.kwargs['VISUALIZE'] == True:
+                self.visualize_preds(img, regions_of_interest)
+        regions_of_interest = self.non_max_suppression(preds, self.kwargs['IOU_THRESH'])
         if self.kwargs['DEBUG'] == True:
             print('apply non_max_suppression = ', len(regions_of_interest))
 
@@ -281,7 +256,8 @@ if __name__ == '__main__':
         ROI_SIZE=(48, 48),
         INPUT_SIZE=(IMAGE_SIZE, IMAGE_SIZE),
         VISUALIZE=True,
-        MIN_CONF=3.05,
+        MIN_CONF = 3.05,
+        IOU_THRESH = 0.5,
         DEBUG=debug
     )
     image = cv2.imread(path)

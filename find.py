@@ -15,7 +15,7 @@ import torch.nn as nn
 import models.MathNet as mnt
 import models.MathNet56 as mnt56
 from models.MathNetFactory import MathNetFactory
-from SlidingWindow import *
+from utils.SlidingWindow import *
 
 debug = True
 IMAGE_SIZE = int(sys.argv[1])
@@ -31,6 +31,7 @@ kwargs = dict(
         INPUT_SIZE=(IMAGE_SIZE, IMAGE_SIZE),
         VISUALIZE=True,
         MIN_CONF=3.05,
+        IOU_THRESH = 0.5,
         DEBUG=debug
     )
 image = cv2.imread(path)
