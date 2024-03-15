@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import torch.nn as nn
 
 import models.MathNet as mnt
-import models.MathNet56 as mnt56
+import models.MathNet112 as mnt56
 from models.MathNetFactory import MathNetFactory
 from utils.SlidingWindow import *
 
