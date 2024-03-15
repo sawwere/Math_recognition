@@ -498,3 +498,4 @@ hasy_sorted/
 *.jpeg
 *.png
 TRAIN/A_Z Handwritten Data.csv
+*.bmp
