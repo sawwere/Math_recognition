@@ -14,9 +14,10 @@ import imutils
 from imutils.object_detection import non_max_suppression
 
 import models.MathNet as mnt
-import models.MathNet56 as mnt56
+import models.MathNet112 as mnt56
 from models.MathNetFactory import MathNetFactory
 from utils.letter import Letter
+from utils.printer import PrettyPrinter
 
 pytesseract.pytesseract.tesseract_cmd = "C:\\Program Files\\Tesseract-OCR\\tesseract.exe"
 
@@ -79,6 +80,15 @@ class SlidingWindow():
             #cv2.waitKey(0)
             yield image   
 
+    def __add_border(self, image):
+        pad = int(image.shape[0]*0.1)
+        mask1 = np.uint8(np.ones((int(image.shape[0] - 2 * pad), int(image.shape[1] - 2 * pad))) * 255.0)
+        mask2 = np.pad(mask1, pad_width=pad)
+        mask1 = np.uint8(np.ones((int(image.shape[0]), int(image.shape[1]))) * 255.0)
+        res = cv2.bitwise_and(mask2, image)
+        res = cv2.bitwise_or(cv2.bitwise_not(mask2), res)
+        return res
+
     def get_rois(self, W, pyramid):
         res = []
         strideX = self.kwargs['ROI_SIZE'][0]
@@ -88,15 +98,25 @@ class SlidingWindow():
             #cv2.imshow("{} {};".format(scale, image.shape[0]), image)
             #cv2.waitKey(0)
             for (x, y, roiOrig) in self.sliding_window(image, (strideX, strideY), self.kwargs['WIN_STEP']):
+                #roiOrig = self.__add_border(roiOrig)
                 img = Image.fromarray(roiOrig.astype('uint8'))
-                # skip blank images                
+                # skip blank images   
+                area = img.size[0]*img.size[1]
+                black_count = area - cv2.countNonZero(roiOrig)   
+                #if ( black_count / area > 0.01):         
                 if (img.size[0]*img.size[1] - cv2.countNonZero(roiOrig) != 0):
                     x = int(x * scale)
                     y = int(y * scale)
                     w = int(self.kwargs['ROI_SIZE'][0] * scale)
                     h = int(self.kwargs['ROI_SIZE'][1] * scale)
-                    
+                    # cv2.imshow("aa", roiOrig)
+                    # cv2.waitKey(0)
+                    # z = img.size[0]*img.size[1]
+                    # print(area)
+                    # print(cv2.countNonZero(roiOrig), img.size[0]*img.size[1], cv2.countNonZero(roiOrig) / area, cv2.countNonZero(roiOrig) / img.size[0]*img.size[1] > 1.1)
+                    # exit(0)
                     roi = cv2.resize(roiOrig, self.kwargs['INPUT_SIZE'])
+                    roi = cv2.dilate(roi, np.ones((3, 3), np.uint8), iterations=1)
                     res.append(Letter(x, y, w, h, roi))
         return res
 
@@ -119,7 +139,7 @@ class SlidingWindow():
         for letter in letters:
             res_letters.append(letter)
             draw.rectangle((letter.x, letter.y, letter.x+letter.width, letter.y+letter.height), outline=(255,0,0))
-            draw.text((letter.x, letter.y), str(letter.value), font=font, fill=(200,40,0,255))
+            draw.text((letter.x, letter.y), str(mnt.map_pred(letter.value)), font=font, fill=(200,40,0,255))
         if self.kwargs['DEBUG'] == True:
             output.show()
         return (output, res_letters)
@@ -171,13 +191,14 @@ class SlidingWindow():
             x_image = x_image.to(device)
 
             predicted = self.model(x_image) 
+            #predicted[0][29] = -100
             prob = predicted.max().item()
             
             #print(prob)
             if prob >= self.kwargs['MIN_CONF']:   
-                value = mnt.map_pred(predicted.argmax().item())  
+                value = predicted.argmax().item()
                 letter.value = value
-                letter.value += "; {:.2f}".format(prob)
+                #letter.value += "; {:.2f}".format(prob)
                 letter.score = prob
 
                 ll = labels.get(value, [])
@@ -237,8 +258,10 @@ class SlidingWindow():
 
         if self.kwargs['DEBUG'] == True:
             print('found letters = ', len(regions_of_interest))
-        res = self.visualize_preds(img, regions_of_interest)
-        return res
+        (_, letters) = self.visualize_preds(img, regions_of_interest)
+        printer = PrettyPrinter()
+        printer.print(letters)
+        return (_, letters)
 
 
 
@@ -256,7 +279,7 @@ if __name__ == '__main__':
         ROI_SIZE=(48, 48),
         INPUT_SIZE=(IMAGE_SIZE, IMAGE_SIZE),
         VISUALIZE=True,
-        MIN_CONF = 3.05,
+        MIN_CONF = 6.05,
         IOU_THRESH = 0.5,
         DEBUG=debug
     )

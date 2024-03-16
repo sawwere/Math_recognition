@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import torch.nn as nn
 
 import models.MathNet as mnt
-import models.MathNet112 as mnt56
+import models.MathNet112 as mnt112
 from models.MathNetFactory import MathNetFactory
 from utils.SlidingWindow import *
 
@@ -30,8 +30,8 @@ kwargs = dict(
         ROI_SIZE=(48, 48),
         INPUT_SIZE=(IMAGE_SIZE, IMAGE_SIZE),
         VISUALIZE=True,
-        MIN_CONF=3.05,
-        IOU_THRESH = 0.5,
+        MIN_CONF=6.05,
+        IOU_THRESH = 0.25,
         DEBUG=debug
     )
 image = cv2.imread(path)
