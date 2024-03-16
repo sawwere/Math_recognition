@@ -25,7 +25,7 @@ if (len(sys.argv) > 3):
         debug = False
 
 kwargs = dict(
-        PYR_SCALE=2.25,
+        PYR_SCALE=1.5,
         WIN_STEP=16,
         ROI_SIZE=(48, 48),
         INPUT_SIZE=(IMAGE_SIZE, IMAGE_SIZE),

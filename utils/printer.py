@@ -49,6 +49,9 @@ class PrettyPrinter:
     def __init__(self):
         pass
 
+    def char(self, idx):
+        return classes[idx]
+
     def print(self, letters):
         res = []
         # True sorting by Y axis

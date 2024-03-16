@@ -40,24 +40,48 @@ class SlidingWindow():
         self.model = self.model.to(device)
         self.model.eval()
         self.kwargs = kwargs
+        self.avg = 0
+
+    def mean(self, contours):
+        if len(contours) <= 0:
+            return (0, 0)
+        avg_w = 0
+        avg_h = 0
+        for contour in contours:
+            (x, y, w, h) = cv2.boundingRect(contour)
+            avg_w += w
+            avg_h += h
+        avg_w /= len(contours)
+        avg_h /= len(contours)
+        
+        return (int(avg_w), int(avg_h))
+
     
     def preprocess(self, image, frame):
         res = image.copy()
         gray = cv2.cvtColor(res,cv2.COLOR_BGR2GRAY)
+        
         blurred = cv2.blur(gray, (3, 3))
         thresh = 110
         #thresh_img = cv2.threshold(blurred,0,255, cv2.THRESH_OTSU | cv2.THRESH_BINARY)[1]
         thresh_img = cv2.adaptiveThreshold(blurred, 255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY,5,8)
-
-        contours, hierarchy = cv2.findContours(thresh_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)   
+        if self.kwargs['DEBUG'] == True:
+                    cv2.imshow('result', thresh_img)
+                    cv2.waitKey(0)
+                    cv2.destroyAllWindows()
+        contours, hierarchy = cv2.findContours(thresh_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
         mask = np.uint8(np.zeros((thresh_img.shape[0], thresh_img.shape[1])))
         for (idx, contour) in enumerate(contours[1:]):
             (x, y, w, h) = cv2.boundingRect(contour)
             if (x - frame[0]) * (x -  image.shape[1] - frame[0]) > 0 or (y - frame[1]) * (y -  image.shape[0] - frame[1]) > 0 :
-                
                 cv2.drawContours(mask, [contour], 0, (255), -1)
+                
+        # contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)   
+        # self.kwargs['ROI_SIZE'] = self.mean(contours)
+        # print(self.kwargs['ROI_SIZE'])
         result = cv2.bitwise_or(thresh_img, mask)
-        
+        result = self.__add_border(result)
+        #result = cv2.erode(result, np.ones((3, 3), np.uint8), iterations=2 )
         if self.kwargs['DEBUG'] == True:
             cv2.imshow('result', result)
             cv2.waitKey(0)
@@ -81,10 +105,10 @@ class SlidingWindow():
             yield image   
 
     def __add_border(self, image):
-        pad = int(image.shape[0]*0.1)
+        pad = 10
         mask1 = np.uint8(np.ones((int(image.shape[0] - 2 * pad), int(image.shape[1] - 2 * pad))) * 255.0)
         mask2 = np.pad(mask1, pad_width=pad)
-        mask1 = np.uint8(np.ones((int(image.shape[0]), int(image.shape[1]))) * 255.0)
+        print(image.shape, mask1.shape, mask2.shape)
         res = cv2.bitwise_and(mask2, image)
         res = cv2.bitwise_or(cv2.bitwise_not(mask2), res)
         return res
@@ -139,7 +163,7 @@ class SlidingWindow():
         for letter in letters:
             res_letters.append(letter)
             draw.rectangle((letter.x, letter.y, letter.x+letter.width, letter.y+letter.height), outline=(255,0,0))
-            draw.text((letter.x, letter.y), str(mnt.map_pred(letter.value)), font=font, fill=(200,40,0,255))
+            draw.text((letter.x, letter.y), str(mnt.map_pred(letter.value)+';'+str(letter.score)), font=font, fill=(200,40,0,255))
         if self.kwargs['DEBUG'] == True:
             output.show()
         return (output, res_letters)
@@ -147,27 +171,36 @@ class SlidingWindow():
     def get_exact_locations(self, rois):
         res = []
         for letter in rois:
-            img = letter.image
+            img = self.__add_border(letter.image)
+            img = cv2.bitwise_not(img)
             # Get contours
-            contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)       
+            contours, hierarchy = cv2.findContours(img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)    
+            if len(contours) < 2:
+                continue
             img_contours = np.uint8(np.zeros((img.shape[0],img.shape[1])))
             cv2.drawContours(img_contours, contours, -1, (255,255,255), 1)
             # Filter contours
             contours = list(contours)
             contours.sort(key=custom_sort)
+            #print(len(contours))
             my_countour = contours[1 if len(contours) > 1 else 0]
             (x, y, w, h) = cv2.boundingRect(my_countour)
-            if cv2.contourArea(my_countour) < 10 or cv2.contourArea(my_countour) > 5000:
-                pass
+            #print(x, y, w, h, img.shape[0]*img.shape[1])
+            print(cv2.contourArea(my_countour))
+            if cv2.contourArea(my_countour) < 100 or w*h > img.shape[0]*img.shape[1] * 0.8:
+                continue
             
             #print("R", x, y, w, h, cv2.contourArea(contour))
             crop_img = img[y:y+h, x:x+w]
-            # cv2.imshow('crop', crop_img)
-            # cv2.waitKey(0)
+            crop_img = cv2.bitwise_not(crop_img)
+            cv2.imshow('img', img)
+            cv2.imshow('crop', crop_img)
+            cv2.waitKey(0)
+            #exit(0)
             _let = Letter(x+letter.x, y+letter.y, w, h, crop_img)
             res.append(_let)
 
-        res.sort(key=lambda ll: (ll.y, ll.x), reverse=False)
+        print(len(res))
         return res
     
     def predict(self, letters):
@@ -244,7 +277,7 @@ class SlidingWindow():
         if self.kwargs['DEBUG'] == True:
             print('regions_of_interest = ', len(regions_of_interest))
 
-        #regions_of_interest = self.get_exact_locations(regions_of_interest)
+        # regions_of_interest = self.get_exact_locations(regions_of_interest)
         #self.add_spaces_to_letter(regions_of_interest)
 
         (regions_of_interest, preds) = self.predict(regions_of_interest)
