@@ -33,6 +33,9 @@ def intersect_rect(x1, y1, x2, y2, xa, ya, xb, yb):
 def custom_sort(countour):
         return -cv2.contourArea(countour)
 
+def add_contrast(x, factor):
+    return transforms.functional.adjust_contrast(x, factor)
+
 class SlidingWindow():
     def __init__(self, model, kwargs):
         self.model = model
@@ -65,10 +68,6 @@ class SlidingWindow():
         thresh = 110
         #thresh_img = cv2.threshold(blurred,0,255, cv2.THRESH_OTSU | cv2.THRESH_BINARY)[1]
         thresh_img = cv2.adaptiveThreshold(blurred, 255,cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY,5,8)
-        if self.kwargs['DEBUG'] == True:
-                    cv2.imshow('result', thresh_img)
-                    cv2.waitKey(0)
-                    cv2.destroyAllWindows()
         contours, hierarchy = cv2.findContours(thresh_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
         mask = np.uint8(np.zeros((thresh_img.shape[0], thresh_img.shape[1])))
         for (idx, contour) in enumerate(contours[1:]):
@@ -80,7 +79,7 @@ class SlidingWindow():
         # self.kwargs['ROI_SIZE'] = self.mean(contours)
         # print(self.kwargs['ROI_SIZE'])
         result = cv2.bitwise_or(thresh_img, mask)
-        result = self.__add_border(result)
+        #result = self.__add_border(result)
         #result = cv2.erode(result, np.ones((3, 3), np.uint8), iterations=2 )
         if self.kwargs['DEBUG'] == True:
             cv2.imshow('result', result)
@@ -151,7 +150,7 @@ class SlidingWindow():
             roi = rois[idx]
             res_letters.append(roi)
             draw = ImageDraw.Draw(output)
-            draw.rectangle((roi.x, roi.y, roi.right, roi.bottom), outline=(255,0,0))
+            draw.rectangle((roi.x, roi.y, roi.right, roi.bottom), outline=(0,255,0))
         output.show()
         return (output, res_letters)
         
@@ -162,8 +161,8 @@ class SlidingWindow():
         res_letters = []
         for letter in letters:
             res_letters.append(letter)
-            draw.rectangle((letter.x, letter.y, letter.x+letter.width, letter.y+letter.height), outline=(255,0,0))
-            draw.text((letter.x, letter.y), str(mnt.map_pred(letter.value)+';'+str(letter.score)), font=font, fill=(200,40,0,255))
+            draw.rectangle((letter.x, letter.y, letter.x+letter.width, letter.y+letter.height), outline=(0,255,0))
+            draw.text((letter.x, letter.y), "{}; {:.3f}.".format(mnt.map_pred(letter.value), letter.score), font=font, fill=(200,40,0,255))
         if self.kwargs['DEBUG'] == True:
             output.show()
         return (output, res_letters)
@@ -215,10 +214,14 @@ class SlidingWindow():
             convert_tensor = transforms.Compose([
                 transforms.Resize(self.kwargs['INPUT_SIZE']),
                 transforms.Grayscale(1),
-                transforms.ToTensor()
+                # transforms.ToTensor()
 
             ])
             x_image = convert_tensor(img)
+            x_image = add_contrast(x_image, 5)
+            to_tensor = transforms.ToTensor()
+
+            x_image = to_tensor(x_image)
             
             x_image = x_image.unsqueeze(0).float()
             x_image = x_image.to(device)
@@ -250,21 +253,24 @@ class SlidingWindow():
                 cur_letter = letters[-1]
                 res.append(cur_letter)
                 letters = letters[:-1]
+
                 if len(letters) == 0:
                     break
+                new_list = []
                 for letter in letters:
-                    (xx1, yy1, xx2, yy2) = intersect_rect(cur_letter.left, cur_letter.y, cur_letter.right, cur_letter.bottom,
+                    (xx1, yy1, xx2, yy2) = intersect_rect(cur_letter.left, cur_letter.top, cur_letter.right, cur_letter.bottom,
                                          letter.left, letter.top, letter.right, letter.bottom)
-
                     w = xx2 - xx1
                     h = yy2 - yy1
                     if w < 0 or h < 0:
+                        new_list.append(letter)
                         continue
                     intersection = w*h
                     union = cur_letter.width * cur_letter.height + letter.width * letter.height - intersection
                     iou = intersection / union
-                    if iou > thresh:
-                        letters.remove(letter)
+                    if iou < thresh:
+                        new_list.append(letter)
+                letters = new_list
         return res
 
     def __call__(self, img):
