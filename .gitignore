@@ -488,7 +488,7 @@ ASALocalRun/
 
 start.bat
 
-models/
+models/**/*.ml
 outputs/
 TRAIN/by_class/
 HASYv2/
