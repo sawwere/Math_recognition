@@ -49,7 +49,8 @@ classes = ['(',
  'upsilon',
  'x',
  'y',
- 'z']
+ 'z',
+ 'Г']
 
 NUM_CLASSES = len(classes)
 

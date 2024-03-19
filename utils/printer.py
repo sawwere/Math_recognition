@@ -43,7 +43,8 @@ classes = ['(',
  'υ',
  'x',
  'y',
- 'z']
+ 'z',
+ 'Г']
 
 class PrettyPrinter:
     def __init__(self):

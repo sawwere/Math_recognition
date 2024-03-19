@@ -82,4 +82,4 @@ class Letter:
             letter_square[0:self.h, x_pos:x_pos + self.w] = img
         else:
             letter_square = img
-        self.image = img
+        self.image = letter_square
