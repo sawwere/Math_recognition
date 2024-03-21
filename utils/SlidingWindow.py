@@ -112,7 +112,8 @@ class SlidingWindow():
         res = cv2.bitwise_or(cv2.bitwise_not(mask2), res)
         return res
 
-    def get_rois(self, W, pyramid):
+    def get_rois(self, W, processed):
+        pyramid = self.image_pyramid(processed, scale=self.kwargs['PYR_SCALE'], minSize=self.kwargs['ROI_SIZE'])
         res = []
         strideX = self.kwargs['ROI_SIZE'][0]
         strideY = self.kwargs['ROI_SIZE'][1]
@@ -132,14 +133,10 @@ class SlidingWindow():
                     y = int(y * scale)
                     w = int(self.kwargs['ROI_SIZE'][0] * scale)
                     h = int(self.kwargs['ROI_SIZE'][1] * scale)
-                    # cv2.imshow("aa", roiOrig)
-                    # cv2.waitKey(0)
-                    # z = img.size[0]*img.size[1]
-                    # print(area)
-                    # print(cv2.countNonZero(roiOrig), img.size[0]*img.size[1], cv2.countNonZero(roiOrig) / area, cv2.countNonZero(roiOrig) / img.size[0]*img.size[1] > 1.1)
-                    # exit(0)
-                    roi = cv2.resize(roiOrig, self.kwargs['INPUT_SIZE'])
-                    roi = cv2.dilate(roi, np.ones((3, 3), np.uint8), iterations=1)
+                    temp_image = processed[y:y+h, x:x+w]
+                    _, temp_image = cv2.threshold(temp_image, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+                    roi = cv2.resize(temp_image, self.kwargs['INPUT_SIZE'])
+                    #roi = cv2.dilate(roi, np.ones((3, 3), np.uint8), iterations=1)
                     res.append(Letter(x, y, w, h, roi))
         return res
 
@@ -275,8 +272,7 @@ class SlidingWindow():
 
     def __call__(self, img):
         processed_image = self.preprocess(img, (45, 45))
-        pyramid = self.image_pyramid(processed_image, scale=self.kwargs['PYR_SCALE'], minSize=self.kwargs['ROI_SIZE'])
-        regions_of_interest = self.get_rois(img.shape[1], pyramid)
+        regions_of_interest = self.get_rois(img.shape[1], processed_image)
         #if self.kwargs['DEBUG'] == True:
         #    self.visualize_rois(img, regions_of_interest)
 
