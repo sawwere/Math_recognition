@@ -128,7 +128,7 @@ class SlidingWindow():
                 area = img.size[0]*img.size[1]
                 black_count = area - cv2.countNonZero(roiOrig)   
                 #if ( black_count / area > 0.01):         
-                if (img.size[0]*img.size[1] - cv2.countNonZero(roiOrig) != 0):
+                if (img.size[0]*img.size[1] - cv2.countNonZero(roiOrig) > 10):
                     x = int(x * scale)
                     y = int(y * scale)
                     w = int(self.kwargs['ROI_SIZE'][0] * scale)
