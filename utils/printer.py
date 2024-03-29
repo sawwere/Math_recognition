@@ -1,7 +1,38 @@
 import models.MathNet as mnt
 import utils.letter
 
-classes = ['(',
+classes = ['(', ')','+','-',
+ '0','1','2', '3','4','5','6','7','8','9',
+ '=',
+ 'A','C','F',
+ 'I-',
+ 'alpha',
+ 'and',
+ 'beta',
+ 'delta',
+ 'equal',
+ 'exists',
+ 'forall',
+ 'gamma',
+ 'lambda',
+ 'mu',
+ 'not',
+ 'omega',
+ 'or',
+ 'phi',
+ 'pi',
+ 'psi',
+ 'rightarrow',
+ 'sigma',
+ 'tau',
+ 'theta',
+ 'upsilon',
+ 'x',
+ 'y',
+ 'z',
+ 'Г']
+
+pretty_classes = ['(',
  ')',
  '+',
  '-',
@@ -76,7 +107,7 @@ class PrettyPrinter:
                 res.append(string)
                 string = ""
                 prev_line = letter.line
-            string += classes[letter.value]
+            string += pretty_classes[letter.value]
         res.append(string)
         for line in res:
             print(line)
