@@ -83,20 +83,25 @@ class PrettyPrinter:
 
     def char(self, idx):
         return classes[idx]
+    
+    def pretty(self, idx):
+        return pretty_classes[idx]
 
-    def print(self, letters):
+    def print(self, letters, need_to_sort=True):
         res = []
         # True sorting by Y axis
         line = 0
         
-        letters.sort(key=lambda ll: (ll.y), reverse=False)  
+        
         #print(mnt.map_pred(letters[0].value), letters[0].top, letters[0].bottom)
-        for i in range (1, len(letters)):
-            if letters[i].top > letters[i-1].bottom:
-                line += 1
-            letters[i].line = line
-            #print(mnt.map_pred(letters[i].value), letters[i].top, letters[i-1].bottom, line)
-        letters.sort(key=lambda ll: (ll.line, ll.x), reverse=False)  
+        if (need_to_sort):
+            letters.sort(key=lambda ll: (ll.y), reverse=False)  
+            for i in range (1, len(letters)):
+                if letters[i].top > letters[i-1].bottom:
+                    line += 1
+                letters[i].line = line
+                #print(mnt.map_pred(letters[i].value), letters[i].top, letters[i-1].bottom, line)
+            letters.sort(key=lambda ll: (ll.line, ll.x), reverse=False)  
 
         prev_line=-1
         string = ""
