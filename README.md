@@ -7,6 +7,7 @@
     conda install scikit-learn
     conda install matplotlib
     pip install tqdm
+    conda install flask
 
 ## TODO
 ### image_pyramids
