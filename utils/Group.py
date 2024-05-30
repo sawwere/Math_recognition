@@ -15,3 +15,7 @@ class Group:
         for item in self.letters:
             res += self.printer.pretty(item.value) + ' '
         print(res)
+
+    def __getstate__(self):
+            state = self.__dict__.copy()['letters']
+            return state

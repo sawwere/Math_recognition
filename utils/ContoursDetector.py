@@ -90,7 +90,8 @@ class ContoursDetector():
         return letters
 
     def visualize_rois(self, img, rois):
-        output = Image.fromarray(img.astype('uint8'))        
+        output = img.copy()
+        output = convert_from_cv2_to_pil(output)       
         res_letters = []
         for idx in range(0, len(rois)):
             roi = rois[idx]
@@ -102,8 +103,7 @@ class ContoursDetector():
         
     def visualize_preds(self, img, letters, hlines):
         #output = Image.new("RGBA", img.size)
-        output = Image.fromarray(img.astype('uint8'))
-        output = output.convert('RGB')
+        output = convert_from_cv2_to_pil(img)   
         font = ImageFont.truetype("T:\my_programs\Math_recognition\ARIALUNI.TTF", 10, encoding="unic")
         draw = ImageDraw.Draw(output)
         res_letters = []
@@ -123,16 +123,14 @@ class ContoursDetector():
         self.average_size = (avg_w, avg_h)
         for letter in rois:
             #remove small noise
-            # if letter.w < avg_w / 2 and letter.height - avg_h / 2 < 0:
-            #     #print(letter.w)
-            #     continue
-            #find horizontal lines
+            if letter.w < avg_w / 2.75 and letter.height - avg_h / 2.75 < 0:
+                continue
+            # find horizontal lines
             if (letter.w > avg_w * 1.75):
                 letter.value = '_hline'
             _, thresh_img = cv2.threshold(letter.image,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
             letter.image = thresh_img
             res.append(letter)
-        print(self.average_size)
         return res
     
     def predict(self, letters):
@@ -179,7 +177,8 @@ class ContoursDetector():
                 regions_of_interest.append(letter)
                 #print(letter.value, prob, printer.char(letter.value))
             else:
-                print(prob, mnt.map_pred(predicted.argmax().item()))
+                if self.kwargs["DEBUG"] == True:
+                    print(prob, mnt.map_pred(predicted.argmax().item()))
         return (regions_of_interest, labels, hlines)
     
 

@@ -19,3 +19,12 @@ def add_border(image):
 
 def add_contrast(x, factor):
     return transforms.functional.adjust_contrast(x, factor)
+
+def convert_from_cv2_to_pil(img: np.ndarray) -> Image:
+    # return Image.fromarray(img)
+    return Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+
+
+def convert_from_pil_to_cv2(img: Image) -> np.ndarray:
+    # return np.asarray(img)
+    return cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)

@@ -1,3 +1,5 @@
+import json
+
 from utils.printer import PrettyPrinter
 
 class Node:
@@ -11,7 +13,6 @@ class Node:
         self.left = None
         self.right = None
         self.parent = None
-        self.printer = PrettyPrinter()
 
     def print(self):
         res = ''
@@ -27,12 +28,14 @@ class Node:
                 res += '--'
             res +='\n'
         for letter in self.value.letters:
-            res += self.printer.pretty(letter.value) + ' '
+            res += PrettyPrinter().pretty(letter.value) + ' '
         print(res)
 
-    def init(self, hline, letters):
-        self.letters.sort(key=lambda ll: (ll.x), reverse=False)
-        self.x = letters[0].x
-        self.y = min(map(lambda x: x.y, self.letters))
-        self.right = max(map(lambda x: x.right, self.letters))
-        self.bottom = max(map(lambda x: x.bottom, self.letters))
+    def __getstate__(self):
+            state = self.__dict__.copy()
+            # del state['x']
+            # del state['y']
+            # del state['r']
+            # del state['b']
+            # del state['parent']
+            return state
