@@ -1,0 +1,21 @@
+pre {
+    outline: 1px solid #ccc;
+    padding: 5px;
+    margin: 5px;
+}
+
+.string {
+    color: rgb(143, 42, 2);
+}
+
+.number {
+    color: darkolivegreen;
+}
+
+.null {
+    color: red;
+}
+
+.key {
+    color: rgb(119, 0, 255);
+}
