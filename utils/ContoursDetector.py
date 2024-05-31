@@ -7,10 +7,9 @@ from torchvision import transforms
 import torch.nn as nn
 
 import models.MathNet as mnt
-import models.MathNet112 as mnt112
+from utils.image_processing import *
 from utils.letter import Letter
 from utils.printer import PrettyPrinter
-from utils.image_proccessing import *
 
 def average_size(lst):
     if len(lst) <= 0:

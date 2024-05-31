@@ -22,11 +22,12 @@ ALLOWED_EXTENSIONS = {'bmp',  'png', 'jpg', 'jpeg'}
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['RESULT_FOLDER'] = RESULT_FOLDER
-kwargs = dict(
+app.config['kwargs'] = dict(
+        MODEL_PATH = 'models\mathnet224\mathnet8.ml',
         INPUT_SIZE=(224, 224),
-        VISUALIZE=True,
+        VISUALIZE=False,
         MIN_CONF=0.05,
-        DEBUG=True
+        DEBUG=False
     )
 
 def allowed_file(filename):
@@ -47,15 +48,11 @@ def index():
     return render_template('index.html')
 
 @app.route('/submit', methods=['GET'])
-def get_submit():
-    filename = UPLOAD_FOLDER + '/1.png'
-    result = list()
-    result.append([1,2,3,4,5])
-    result.append([3])
-    return render_template('submit.html', filename=filename, result=result)
+def get_submit_page():
+    return render_template('index.html')
 
-@app.route('/', methods=['POST'])
-def load_image():
+@app.route('/submit', methods=['POST'])
+def get_submit():
     if 'file' not in request.files:
         return redirect(request.url)
     file = request.files['file']
@@ -67,19 +64,25 @@ def load_image():
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         return proccess_file(filename, file)
 
+@app.route('/', methods=['POST'])
+def load_image():
+    return redirect(url_for('get_submit_page'), code=307)
+    # if 'file' not in request.files:
+    #     return redirect(request.url)
+    # file = request.files['file']
+    # if file.filename == '':
+    #     flash('Нет выбранного файла')
+    #     return redirect(request.url)
+    # if file and allowed_file(file.filename):
+    #     filename = secure_filename(file.filename)
+    #     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    #     return proccess_file(filename, file)
+
 def proccess_file(filename, file):
-    print(filename)
     path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    kwargs = dict(
-        MODEL_PATH = 'models\mathnet224\mathnet8.ml',
-        INPUT_SIZE=(224, 224),
-        VISUALIZE=False,
-        MIN_CONF=0.05,
-        DEBUG=False
-    )
     image = cv2.imread(path)
     image_info = ImageInfo(image)
-    css = ContourSearchStep(kwargs)
+    css = ContourSearchStep(app.config['kwargs'] )
     info1 = css.process(image_info)
     result_name = 'result_'+str(time.time())+'_'+filename
     cv2.imwrite(os.path.join(app.config['RESULT_FOLDER'], result_name), info1.image)

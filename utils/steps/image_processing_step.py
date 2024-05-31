@@ -6,7 +6,7 @@ import models.MathNet as mnt
 
 from utils.Node import Node
 from utils.Group import Group
-from utils.image_proccessing import *
+from utils.image_processing import *
 from utils.image_info import ImageInfo
 from utils.ContoursDetector import ContoursDetector
 from utils.printer import PrettyPrinter

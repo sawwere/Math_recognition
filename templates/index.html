@@ -1,8 +1,52 @@
 {% extends "base.html" %}
 {% block content %}
-<form method=post enctype=multipart/form-data>
-    <input type=file name=file>
-    <input type=submit value=Загрузить>
-</form>
+<div class="h-100 mx-auto mt-4">
+    <form method=post enctype=multipart/form-data id="file_dropbox">
+        <div class="file_dropbox bg-light">
+            <label for="file_input" class="form-label">Выберите или перетащите файл</label>
+            <input class="form-control form-control-lg"
+                type=file name=file accept="image/png, image/jpeg, image/jpg, image/bmp" 
+                id="file_input"
+                data-show-upload="true"
+                data-show-caption="true" multiple>
+            <button type="submit" class="btn btn-dark bg-gradient mt-2 mx-auto">Отправить</button>
+        </div>
+    </form>
+</div>
+<script src="static/file_dropbox.js">
+    const dropZone = document.getElementById("file_dropbox");
+    if (dropZone) {
+            let hoverClassName = 'hover';
+
+            dropZone.addEventListener("dragenter", function (e) {
+                e.preventDefault();
+                dropZone.classList.add(hoverClassName);
+            });
+
+            dropZone.addEventListener("dragover", function (e) {
+                e.preventDefault();
+                dropZone.classList.add(hoverClassName);
+            });
+
+            dropZone.addEventListener("dragleave", function (e) {
+                e.preventDefault();
+                dropZone.classList.remove(hoverClassName);
+            });
+
+            // Это самое важное событие, событие, которое дает доступ к файлам
+            dropZone.addEventListener("drop", function (e) {
+                e.preventDefault();
+                dropZone.classList.remove(hoverClassName);
+
+                const files = Array.from(e.dataTransfer.files);
+                console.log(files);
+                let fileInputElement = document.getElementById('file_input');
+                let container = new DataTransfer();
+                container.items.add(files[0]);
+                fileInputElement.files = container.files;
+            });
+        }
+</script>
+
 {% endblock %}
 
