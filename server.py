@@ -1,7 +1,8 @@
-from flask import Flask, jsonify, request, flash, redirect, url_for, send_from_directory
+from flask import Flask, jsonify, request, flash, redirect, url_for, send_from_directory, g
 from flask import abort
 from flask import make_response
 from flask import render_template
+import sqlite3
 
 import jsonpickle
 
@@ -18,6 +19,8 @@ RESOURCE_FOLDER = 'resources'
 UPLOAD_FOLDER = RESOURCE_FOLDER + '/uploads'
 RESULT_FOLDER = RESOURCE_FOLDER + '/results'
 ALLOWED_EXTENSIONS = {'bmp',  'png', 'jpg', 'jpeg'}
+DATABASE = 'table.db'
+
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -29,6 +32,29 @@ app.config['kwargs'] = dict(
         MIN_CONF=0.05,
         DEBUG=False
     )
+
+def get_db():
+    """ Возвращает объект соединения с БД"""
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = sqlite3.connect(DATABASE)
+    return db
+
+@app.teardown_appcontext
+def close_connection(exception):
+    """Закрывает соединение с с БД"""
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
+
+def init_db():
+    with app.app_context():
+        db = get_db()
+        with app.open_resource('schema.sql', mode='r') as f:
+            db.cursor().executescript(f.read())
+        db.commit()
+
+
 
 def allowed_file(filename):
     """ Функция проверки расширения файла """
@@ -51,6 +77,10 @@ def index():
 def get_submit_page():
     return render_template('index.html')
 
+@app.route('/history', methods=['GET'])
+def get_history_page():
+    return render_template('history.html')
+
 @app.route('/submit', methods=['POST'])
 def get_submit():
     if 'file' not in request.files:
@@ -67,16 +97,6 @@ def get_submit():
 @app.route('/', methods=['POST'])
 def load_image():
     return redirect(url_for('get_submit_page'), code=307)
-    # if 'file' not in request.files:
-    #     return redirect(request.url)
-    # file = request.files['file']
-    # if file.filename == '':
-    #     flash('Нет выбранного файла')
-    #     return redirect(request.url)
-    # if file and allowed_file(file.filename):
-    #     filename = secure_filename(file.filename)
-    #     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-    #     return proccess_file(filename, file)
 
 def proccess_file(filename, file):
     path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
@@ -98,4 +118,5 @@ def proccess_file(filename, file):
 
 
 if __name__ == '__main__':
+    init_db()
     app.run(debug=True)
