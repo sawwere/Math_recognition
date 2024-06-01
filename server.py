@@ -96,7 +96,7 @@ def get_submit():
 
 @app.route('/', methods=['POST'])
 def load_image():
-    return redirect(url_for('get_submit_page'), code=307)
+    return redirect(url_for('get_submit'), code=307)
 
 def proccess_file(filename, file):
     path = os.path.join(app.config['UPLOAD_FOLDER'], filename)

@@ -1,18 +1,49 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="h-100 mx-auto mt-4">
-    <form method=post enctype=multipart/form-data id="file_dropbox">
-        <div class="file_dropbox bg-light">
-            <label for="file_input" class="form-label">Выберите или перетащите файл</label>
-            <input class="form-control form-control-lg"
-                type=file name=file accept="image/png, image/jpeg, image/jpg, image/bmp" 
-                id="file_input"
-                data-show-upload="true"
-                data-show-caption="true" multiple
-                required="required" title="Необходимо выбрать минимум один файл">
-            <button type="submit" class="btn btn-dark bg-gradient mt-2 mx-auto">Отправить</button>
-        </div>
-    </form>
+<div class="container h-100 w-100 bg-white">
+    <div class="p-4 h-100">
+        <h1>
+            Отправка изображения для распознания текста
+        </h1>
+        <form method=post enctype=multipart/form-data id="file_dropbox">
+            <div class="file_dropbox rounded bg-light mx-auto p-3">
+                <label for="file_input" class="form-label">Выберите или перетащите файл</label>
+                <input class="form-control form-control-lg" type=file name=file
+                    accept="image/png, image/jpeg, image/jpg, image/bmp" id="file_input" data-show-upload="true"
+                    data-show-caption="true" required="required" title="Необходимо выбрать минимум один файл">
+                <hr>
+                <div class="mt-3 mb-3">
+                    <label for="formGroupNetworkKind" class="form-label">Выберите архитектуру сети</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioAlexNet">
+                        <label class="form-check-label" for="flexRadioAlexNet">
+                            AlexNet
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioResNet" checked>
+                        <label class="form-check-label" for="flexRadioResNet">
+                            ResNet
+                        </label>
+                    </div>
+                </div>
+                <hr>
+        
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheck_showIntermediateSteps">
+                    <label class="form-check-label" for="flexSwitchCheck_showIntermediateSteps">Показывать промежуточные вычисления</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheck_useLexer">
+                    <label class="form-check-label" for="flexSwitchCheck_useLexer">Использовать специальный лексический анализатор</label>
+                </div>
+                <div class="mt-3 mb-3">
+                    <button type="submit" class="btn btn-dark bg-gradient mx-auto">Отправить</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    
 </div>
 <script src="static/file_dropbox.js">
     const dropZone = document.getElementById("file_dropbox");

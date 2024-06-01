@@ -103,7 +103,7 @@ class ContoursDetector():
     def visualize_preds(self, img, letters, hlines):
         #output = Image.new("RGBA", img.size)
         output = convert_from_cv2_to_pil(img)   
-        font = ImageFont.truetype("T:\my_programs\Math_recognition\ARIALUNI.TTF", 10, encoding="unic")
+        font = ImageFont.truetype("T:\my_programs\Math_recognition\\resources\ARIALUNI.TTF", 10, encoding="unic")
         draw = ImageDraw.Draw(output)
         res_letters = []
         for letter in letters:

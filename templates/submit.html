@@ -3,14 +3,14 @@
 <div class="container row align-items-start">
         <div class="col mt-4">
             <h3>Исходное фото</h3>
-            <img src="{{ url_for('download_file', filename='uploads/'+orig_filename) }}" 
-                class="img-fluid rounded" 
+            <img src="{{ url_for('download_file', filename='uploads/'+orig_filename) }}"
+                class="img-fluid rounded border border-black"
                 alt="...">
         </div>
         <div class="col mt-4">
             <h3>Обработанное фото</h3>
-            <img src="{{ url_for('download_file', filename='results/'+result_filename) }}" 
-                class="img-fluid rounded"
+            <img src="{{ url_for('download_file', filename='results/'+result_filename) }}"
+                class="img-fluid rounded border border-black"
                 alt="...">
         </div>
 </div>

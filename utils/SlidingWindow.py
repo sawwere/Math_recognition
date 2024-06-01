@@ -153,7 +153,7 @@ class SlidingWindow():
         
     def visualize_preds(self, img, letters):
         output = Image.fromarray(img.astype('uint8'))
-        font = ImageFont.truetype("T:\my_programs\Math_recognition\ARIALUNI.TTF", 10, encoding="unic")
+        font = ImageFont.truetype("T:\my_programs\Math_recognition\\resources\ARIALUNI.TTF", 10, encoding="unic")
         draw = ImageDraw.Draw(output)
         res_letters = []
         for letter in letters:
