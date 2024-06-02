@@ -10,6 +10,7 @@ from utils.image_processing import *
 from utils.image_info import ImageInfo
 from utils.ContoursDetector import ContoursDetector
 from utils.printer import PrettyPrinter
+from utils.steps.step_result import *
 
 class ImageProcessingStep:
     """Шаг обработки изображений"""
@@ -22,7 +23,7 @@ class ContourSearchStep(ImageProcessingStep):
     def __init__(self,kwargs):
         self.kwargs=kwargs
 
-    def process(self,info : ImageInfo):
+    def process(self,info : ImageInfo) -> ContourSearchStepResult:
         """Выполнить обработку"""
         model = mnt.MathNet()
         model.load_state_dict(torch.load(self.kwargs['MODEL_PATH']))
@@ -31,25 +32,29 @@ class ContourSearchStep(ImageProcessingStep):
         model.eval()
         image = info.image
         detector = ContoursDetector(model, self.kwargs)
-        res = detector(image)
-        res_info = ImageInfo(convert_from_pil_to_cv2(res[0]))
-        res_info.letters = res[1]
-        res_info.hlines = res[2]
-        return res_info
+        _res = detector(image)
+        result = ContourSearchStepResult(convert_from_pil_to_cv2(_res[0]), _res[1], _res[2])
+        return result
     
 
 class GroupSplittingStep(ImageProcessingStep):
-    def __init__(self):
+    def __init__(self,kwargs):
+        self.kwargs=kwargs
         self.printer = PrettyPrinter()
 
     def __split_into_lines(self, letters) -> dict:
         lines = {}
         letters.sort(key=lambda ll: (ll.y), reverse=False)  
         line = 0
+        line_bottom = letters[0].bottom
         for i in range (1, len(letters)):
-            if letters[i].top > letters[i-1].bottom:
+            if letters[i].top > line_bottom:
                 line += 1
+                line_bottom = letters[i].bottom
+            else:
+                line_bottom = max(letters[i-1].bottom, line_bottom)
             letters[i].line = line
+            
             #print(mnt.map_pred(letters[i].value), letters[i].top, letters[i-1].bottom, line)
         letters.sort(key=lambda ll: (ll.line, ll.x), reverse=False)
         for letter in letters:
@@ -58,17 +63,26 @@ class GroupSplittingStep(ImageProcessingStep):
             lines[letter.line].append(letter)
         return lines
     
+    def __avg_distance_between_characters_on_line(self, line:list) -> float:
+        res = 1.0
+        for i in range(1, len(line)):
+            res += line[i].left - line[i-1].right
+        
+        return res / len(line)
+    
     def __split_line_into_groups(self, line:list):
         res = []
         prev = 0
         for i in range(1, len(line)):
-            if line[i].left > line[i-1].right + 50:
+            avg_dist = self.__avg_distance_between_characters_on_line(line) * 4
+            print(avg_dist, line[i].left - line[i-1].right)
+            if line[i].left > line[i-1].right + avg_dist:
                 res.append(line[prev:i])
                 prev = i
         res.append(line[prev:len(line)])
         return res
 
-    def process(self, info : ImageInfo):
+    def process(self, info : ContourSearchStepResult) -> GroupSplittingStepResult:
         _letters = info.letters
         _hlines = info.hlines
         _hlines.sort(key=lambda ll: (ll.y), reverse=True)
@@ -83,16 +97,16 @@ class GroupSplittingStep(ImageProcessingStep):
             lines[line_idx] = []
             for g in line_groups:
                 lines[line_idx].append(Group(g))
-        #print('total line groups: ', line_count)
-        #_ = lines[1][1]
-        #_.print()
-        res_info = ImageInfo(info.image.copy())
-        res_info.lines = lines
-        res_info.hlines = _hlines
-        return res_info
+        if self.kwargs['DEBUG'] == True:
+            for line in lines.keys():
+                for group in lines[line]:
+                    print('LINE:', line, ' '.join([mnt.map_pred(x.value) for x in group.letters]))
+        result = GroupSplittingStepResult(info.image.copy(), lines, _hlines)
+        return result
     
 class BuildTreeStep:
-    def __init__(self):
+    def __init__(self,kwargs):
+        self.kwargs=kwargs
         self.printer = PrettyPrinter()
 
     def __is_item_appr(self, item, line):
@@ -121,15 +135,10 @@ class BuildTreeStep:
                 #print(child.letters[0].value)
                 tmp = Node(child)
                 (tmp, _) = self.__build_tree(tmp, current_line-1, lines, hlines)
-                if root.left is None:
-                    root.left = tmp
-                elif root.right is None:
-                    root.right = tmp
-                else:
-                    print('ERROR: Too many children found')    
+                root.children.append(tmp)
         return (root, current_line+1)
 
-    def process(self, info : ImageInfo):
+    def process(self, info : ImageInfo) -> BuildTreeStepResult:
         _res = []
         line_count = max(info.lines.keys()) + 1
         current_line = line_count - 1
@@ -149,6 +158,5 @@ class BuildTreeStep:
             #print('=======================',)
         #print('res count:', len(_res))
         #_res[1].print()
-        res_info = ImageInfo(info.image.copy())
-        res_info.nodes = _res
-        return res_info
+        result = BuildTreeStepResult(info.image.copy(), _res)
+        return result

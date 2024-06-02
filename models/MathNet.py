@@ -128,7 +128,7 @@ class MathNet(torch.nn.Module):
         self.block4 = ResidiumBlock(256, 512, self.dropout_percentage) # 14x14x256 -> 7x7x512
         # 7x7x512 -> 1x1x512
         self.pool3 = torch.nn.AvgPool2d(kernel_size=7, stride=7, padding=0)
-        self.dropout3 = nn.Dropout(p=self.dropout_percentage)
+        self.dropout = nn.Dropout(p=self.dropout_percentage)
         # 512 -> NUM_CLASSES
         self.fc1 = torch.nn.Linear(512, NUM_CLASSES)
     
@@ -141,7 +141,7 @@ class MathNet(torch.nn.Module):
         x = self.block3(x)
         x = self.block4(x)
         x = self.pool3(x)
-
+        x = self.dropout(x)
         x = x.view(x.size(0), x.size(1) * x.size(2) * x.size(3))
         x = self.fc1(x)  
         return x

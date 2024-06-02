@@ -10,8 +10,7 @@ class Node:
         self.y = 0#min(map(lambda x: x.y, self.letters))
         self.r = 0#max(map(lambda x: x.right, self.letters))
         self.b = 0#max(map(lambda x: x.bottom, self.letters))
-        self.left = None
-        self.right = None
+        self.children = list()
         self.parent = None
 
     def print(self):
@@ -33,9 +32,9 @@ class Node:
 
     def __getstate__(self):
             state = self.__dict__.copy()
-            # del state['x']
-            # del state['y']
-            # del state['r']
-            # del state['b']
-            # del state['parent']
+            del state['x']
+            del state['y']
+            del state['r']
+            del state['b']
+            del state['parent']
             return state

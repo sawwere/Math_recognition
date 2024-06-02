@@ -109,7 +109,8 @@ class ContoursDetector():
         for letter in letters:
             res_letters.append(letter)
             draw.rectangle((letter.x, letter.y, letter.x+letter.width, letter.y+letter.height), outline=(0,255,0))
-            #draw.text((letter.x, letter.y), "{}; {:.3f}.".format(mnt.map_pred(letter.value), letter.score), font=font, fill=(200,40,0,255))
+            if self.kwargs['DEBUG'] == True:
+                draw.text((letter.x, letter.y), "{}; {:.3f}.".format(mnt.map_pred(letter.value), letter.score), font=font, fill=(200,40,0,255))
         for hline in hlines:
             draw.rectangle((hline.x, hline.y, hline.right, hline.bottom), outline=(215,56,0))
         if self.kwargs['VISUALIZE'] == True:
@@ -151,7 +152,7 @@ class ContoursDetector():
             convert_tensor = transforms.Compose([
                 transforms.Resize(self.kwargs['INPUT_SIZE']),
                 transforms.Grayscale(1),
-                transforms.GaussianBlur(3),
+                #transforms.GaussianBlur(3),
                 # transforms.ToTensor()
             ])
             x_image = convert_tensor(img)

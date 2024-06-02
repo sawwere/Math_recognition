@@ -13,6 +13,7 @@ import time
 from utils.Node import *
 from utils.image_processing import *
 from utils.image_info import ImageInfo
+from utils.steps.lexer_step import *
 from utils.steps.image_processing_step import *
 
 RESOURCE_FOLDER = 'resources'
@@ -27,10 +28,12 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['RESULT_FOLDER'] = RESULT_FOLDER
 app.config['kwargs'] = dict(
         MODEL_PATH = 'models\mathnet224\mathnet8.ml',
+        MODEL_KIND = 'RES_NET',
         INPUT_SIZE=(224, 224),
         VISUALIZE=False,
-        MIN_CONF=0.05,
-        DEBUG=False
+        MIN_CONF=0.15,
+        LEXER_MULTIPLIER = 1.5,
+        DEBUG=True
     )
 
 def get_db():
@@ -107,9 +110,11 @@ def proccess_file(filename, file):
     result_name = 'result_'+str(time.time())+'_'+filename
     cv2.imwrite(os.path.join(app.config['RESULT_FOLDER'], result_name), info1.image)
 
-    groups_step = GroupSplittingStep()
+    groups_step = GroupSplittingStep(app.config['kwargs'])
     info2 = groups_step.process(info1)
-    tree_step = BuildTreeStep()
+    lexer_step = LexerStep(app.config['kwargs'])
+    info2 = lexer_step.process(info2)
+    tree_step = BuildTreeStep(app.config['kwargs'])
     info3 = tree_step.process(info2)
     return render_template('submit.html', 
                            orig_filename=filename,
