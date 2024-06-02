@@ -26,8 +26,8 @@ class LexerStep(ImageProcessingStep):
             for group in info.lines[line]:
                 lexer = Lexer(model=model, input=group)
                 lexer.parse()
-                _ = ''
-                print('LINE:', line, ' '.join([mnt.map_pred(x.value) for x in group.letters]))
+                if self.kwargs['DEBUG'] == True:
+                    print('LINE:', line, ' '.join([mnt.map_pred(x.value) for x in group.letters]))
                     
         result = LexerStepResult(info.image, info.lines, info.hlines)
         return result

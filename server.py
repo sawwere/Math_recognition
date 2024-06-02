@@ -27,35 +27,14 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['RESULT_FOLDER'] = RESULT_FOLDER
 app.config['kwargs'] = dict(
-        MODEL_PATH = 'models\mathnet224\mathnet8.ml',
+        MODEL_PATH = 'models\mathnet224\mathnet.ml',
         MODEL_KIND = 'RES_NET',
         INPUT_SIZE=(224, 224),
         VISUALIZE=False,
         MIN_CONF=0.15,
         LEXER_MULTIPLIER = 1.5,
-        DEBUG=True
+        DEBUG=False
     )
-
-def get_db():
-    """ Возвращает объект соединения с БД"""
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = g._database = sqlite3.connect(DATABASE)
-    return db
-
-@app.teardown_appcontext
-def close_connection(exception):
-    """Закрывает соединение с с БД"""
-    db = getattr(g, '_database', None)
-    if db is not None:
-        db.close()
-
-def init_db():
-    with app.app_context():
-        db = get_db()
-        with app.open_resource('schema.sql', mode='r') as f:
-            db.cursor().executescript(f.read())
-        db.commit()
 
 
 
@@ -95,26 +74,45 @@ def get_submit():
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-        return proccess_file(filename, file)
+        return proccess_file(filename, request.form)
 
 @app.route('/', methods=['POST'])
 def load_image():
     return redirect(url_for('get_submit'), code=307)
 
-def proccess_file(filename, file):
+def proccess_file(filename, form):
     path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     image = cv2.imread(path)
     image_info = ImageInfo(image)
-    css = ContourSearchStep(app.config['kwargs'] )
+
+    kwargs = app.config['kwargs'].copy()
+    if form.get('options') is not None:
+        if form.get('options') == 'AlexNet':
+            kwargs['MODEL_KIND'] = 'ALEX_NET'
+            kwargs['MODEL_PATH'] = 'models\\alexnet227\mathnet.ml'
+            kwargs['INPUT_SIZE']=(227, 227)
+            model = models.alexnet.AlexNet(mnt.NUM_CLASSES)
+        else:
+            kwargs['MODEL_KIND'] = 'RES_NET'
+            kwargs['MODEL_PATH'] = 'models\\mathnet224\mathnet.ml'
+            model = mnt.MathNet()
+    
+    model.load_state_dict(torch.load(kwargs['MODEL_PATH']))
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    model = model.to(device)
+    model.eval()
+
+    css = ContourSearchStep(kwargs, model)
     info1 = css.process(image_info)
     result_name = 'result_'+str(time.time())+'_'+filename
     cv2.imwrite(os.path.join(app.config['RESULT_FOLDER'], result_name), info1.image)
 
-    groups_step = GroupSplittingStep(app.config['kwargs'])
+    groups_step = GroupSplittingStep(kwargs)
     info2 = groups_step.process(info1)
-    lexer_step = LexerStep(app.config['kwargs'])
-    info2 = lexer_step.process(info2)
-    tree_step = BuildTreeStep(app.config['kwargs'])
+    if form.get('flexSwitchCheck_useLexer') is not None:
+        lexer_step = LexerStep(kwargs)
+        info2 = lexer_step.process(info2)
+    tree_step = BuildTreeStep(kwargs)
     info3 = tree_step.process(info2)
     return render_template('submit.html', 
                            orig_filename=filename,
@@ -123,5 +121,4 @@ def proccess_file(filename, file):
 
 
 if __name__ == '__main__':
-    init_db()
     app.run(debug=True)

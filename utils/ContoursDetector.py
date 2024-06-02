@@ -201,7 +201,7 @@ class ContoursDetector():
 
         if self.kwargs['DEBUG'] == True:
             print('found letters = ', len(regions_of_interest))
+            printer = PrettyPrinter()
+            printer.print(letters)
         (_, letters) = self.visualize_preds(img, regions_of_interest, hlines)
-        printer = PrettyPrinter()
-        printer.print(letters)
         return (_, letters, hlines)

@@ -20,18 +20,14 @@ class ImageProcessingStep:
         pass
 
 class ContourSearchStep(ImageProcessingStep):
-    def __init__(self,kwargs):
+    def __init__(self,kwargs, model):
         self.kwargs=kwargs
+        self.model = model
 
     def process(self,info : ImageInfo) -> ContourSearchStepResult:
         """Выполнить обработку"""
-        model = mnt.MathNet()
-        model.load_state_dict(torch.load(self.kwargs['MODEL_PATH']))
-        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        model = model.to(device)
-        model.eval()
         image = info.image
-        detector = ContoursDetector(model, self.kwargs)
+        detector = ContoursDetector(self.model, self.kwargs)
         _res = detector(image)
         result = ContourSearchStepResult(convert_from_pil_to_cv2(_res[0]), _res[1], _res[2])
         return result
@@ -55,7 +51,6 @@ class GroupSplittingStep(ImageProcessingStep):
                 line_bottom = max(letters[i-1].bottom, line_bottom)
             letters[i].line = line
             
-            #print(mnt.map_pred(letters[i].value), letters[i].top, letters[i-1].bottom, line)
         letters.sort(key=lambda ll: (ll.line, ll.x), reverse=False)
         for letter in letters:
             if letter.line not in lines.keys():
@@ -75,7 +70,6 @@ class GroupSplittingStep(ImageProcessingStep):
         prev = 0
         for i in range(1, len(line)):
             avg_dist = self.__avg_distance_between_characters_on_line(line) * 4
-            print(avg_dist, line[i].left - line[i-1].right)
             if line[i].left > line[i-1].right + avg_dist:
                 res.append(line[prev:i])
                 prev = i
