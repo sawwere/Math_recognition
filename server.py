@@ -10,6 +10,7 @@ from werkzeug.utils import secure_filename
 
 import os
 import time
+from datetime import datetime
 from pathlib import Path
 
 from utils.Node import *
@@ -58,12 +59,26 @@ def index():
     return render_template('index.html')
 
 @app.route('/submit', methods=['GET'])
-def get_submit_page():
-    return render_template('index.html')
+def get_exact_submit():
+    filename = request.args.get('name')
+    if filename is None:
+        return render_template('index.html')
+    orig = str(filename)
+    path_to_dir = os.path.join(app.config['RESULT_FOLDER'], filename)
+    if not os.path.exists(path_to_dir):
+        return not_found(request.url)
+    with open(path_to_dir+'/result.json', 'r') as file:
+        json_string = file.read()
+    return render_template('submit.html', 
+                           orig_filename=orig,
+                           result_dir=filename,
+                           json=json_string)
 
 @app.route('/history', methods=['GET'])
 def get_history_page():
-    return render_template('history.html')
+    dirs = [x[1] for x in os.walk(app.config['RESULT_FOLDER'])][0]
+    times = [datetime.fromtimestamp(float(dir.split('.')[0])) for dir in dirs]
+    return render_template('history.html', total=len(dirs), results=dirs, times=times)
 
 @app.route('/submit', methods=['POST'])
 def get_submit():
@@ -130,4 +145,6 @@ def proccess_file(filename, form):
 
 
 if __name__ == '__main__':
+    Path(app.config['UPLOAD_FOLDER']).mkdir(parents=True, exist_ok=True)
+    Path(app.config['RESULT_FOLDER']).mkdir(parents=True, exist_ok=True)
     app.run(debug=True)

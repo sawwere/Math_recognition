@@ -11,6 +11,5 @@
 
 ## TODO
 ### improve dataset
-### history
 ### showIntermediateSteps
 
