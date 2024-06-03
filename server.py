@@ -10,6 +10,8 @@ from werkzeug.utils import secure_filename
 
 import os
 import time
+from pathlib import Path
+
 from utils.Node import *
 from utils.image_processing import *
 from utils.image_info import ImageInfo
@@ -73,6 +75,7 @@ def get_submit():
         return redirect(request.url)
     if file and allowed_file(file.filename):
         filename = secure_filename(file.filename)
+        filename = str(time.time()) + '_' + filename
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         return proccess_file(filename, request.form)
 
@@ -104,8 +107,10 @@ def proccess_file(filename, form):
 
     css = ContourSearchStep(kwargs, model)
     info1 = css.process(image_info)
-    result_name = 'result_'+str(time.time())+'_'+filename
-    cv2.imwrite(os.path.join(app.config['RESULT_FOLDER'], result_name), info1.image)
+    path_to_dir = os.path.join(app.config['RESULT_FOLDER'], filename)
+    Path(path_to_dir).mkdir(parents=True, exist_ok=True)
+    
+    cv2.imwrite(os.path.join(path_to_dir, 'result.jpg'), info1.image)
 
     groups_step = GroupSplittingStep(kwargs)
     info2 = groups_step.process(info1)
@@ -114,10 +119,14 @@ def proccess_file(filename, form):
         info2 = lexer_step.process(info2)
     tree_step = BuildTreeStep(kwargs)
     info3 = tree_step.process(info2)
+
+    json_string = jsonpickle.encode(info3.nodes, indent=2)
+    with open(path_to_dir+'/result.json', 'w') as file:
+        file.write(json_string)
     return render_template('submit.html', 
                            orig_filename=filename,
-                           result_filename=result_name, 
-                           json=jsonpickle.encode(info3.nodes, indent=2))
+                           result_dir=filename,
+                           json=json_string)
 
 
 if __name__ == '__main__':

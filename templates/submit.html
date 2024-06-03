@@ -9,7 +9,7 @@
         </div>
         <div class="col mt-4">
             <h3>Обработанное фото</h3>
-            <img src="{{ url_for('download_file', filename='results/'+result_filename) }}"
+            <img src="{{ url_for('download_file', filename='results/'+result_dir+'/result.jpg') }}"
                 class="img-fluid rounded border border-black"
                 alt="...">
         </div>
@@ -17,7 +17,7 @@
 <div class="container-fluid">
     <h1>Содержимое выходного файла
         <span>
-            <button type="button" class="btn btn-dark">Скачать копию</button>
+            <button type="button" class="btn btn-dark" id="btnJson">Скачать копию</button>
         </span>
     </h1>
 
@@ -53,5 +53,18 @@
     console.log(data);
     // display data in pre tag
     document.getElementById("json").innerHTML = syntaxHighlight(dataString);
+</script>
+<script>
+    var btnJson = document.getElementById("btnJson");
+    btnJson.addEventListener("click", function (e) {
+            e.preventDefault();
+            var link = document.createElement('a');
+
+            link.setAttribute('href', "{{url_for('download_file', filename='results/'+result_dir+'/result.json')}}");
+
+            link.setAttribute('download', "result.json");
+
+            link.click();
+            });
 </script>
 {% endblock %}

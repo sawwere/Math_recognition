@@ -10,7 +10,7 @@
     conda install flask
 
 ## TODO
-### image_pyramids
-### proper resizing
 ### improve dataset
+### history
+### showIntermediateSteps
 

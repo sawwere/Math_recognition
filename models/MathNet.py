@@ -114,7 +114,7 @@ class ResidiumBlock(torch.nn.Module):
 class MathNet(torch.nn.Module):
     def __init__(self, out_size=NUM_CLASSES):
         super(MathNet, self).__init__()
-        self.dropout_percentage = 0.25
+        self.dropout_percentage = 0.44
         
         # 224x224x1 -> 112x112x64
         self.conv1 =  nn.Conv2d(in_channels=1, out_channels=64, kernel_size=7, stride=2, padding=3)

@@ -499,3 +499,4 @@ hasy_sorted/
 *.png
 TRAIN/A_Z Handwritten Data.csv
 *.bmp
+/resources/results
