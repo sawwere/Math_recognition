@@ -78,6 +78,9 @@ class GroupSplittingStep(ImageProcessingStep):
 
     def process(self, info : ContourSearchStepResult) -> GroupSplittingStepResult:
         _letters = info.letters
+        img = info.image.copy()
+        img = convert_from_cv2_to_pil(img)   
+        draw = ImageDraw.Draw(img)
         _hlines = info.hlines
         _hlines.sort(key=lambda ll: (ll.y), reverse=True)
         lines = self.__split_into_lines(_letters)
@@ -89,13 +92,16 @@ class GroupSplittingStep(ImageProcessingStep):
         for line_idx in lines.keys():
             line_groups = self.__split_line_into_groups(lines[line_idx])
             lines[line_idx] = []
-            for g in line_groups:
-                lines[line_idx].append(Group(g))
+            for g in line_groups:  
+                group = Group(g)
+                lines[line_idx].append(group)  
+                draw.rectangle((group.left, group.top, group.right, group.bottom), outline=(0,0,255))        
+        img = convert_from_pil_to_cv2(img)    
         if self.kwargs['DEBUG'] == True:
             for line in lines.keys():
                 for group in lines[line]:
                     print('LINE:', line, ' '.join([mnt.map_pred(x.value) for x in group.letters]))
-        result = GroupSplittingStepResult(info.image.copy(), lines, _hlines)
+        result = GroupSplittingStepResult(img, lines, _hlines)
         return result
     
 class BuildTreeStep:
